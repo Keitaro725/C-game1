@@ -17,14 +17,16 @@ namespace breakout
         Vector ballSpeed;
         int ballRadius;
         Rectangle paddlePos;
+        Rectangle blockPos;
         public Form1()
         {
             InitializeComponent();
 
-            this.ballPos = new Vector(200, 200);
+            this.ballPos = new Vector(200, 200); //円の中心座標
             this.ballSpeed = new Vector(-6, -12);
             this.ballRadius = 10;
             this.paddlePos = new Rectangle(100, this.Height - 50, 100, 5);
+            this.blockPos = new Rectangle(100, 50, 80, 25);
 
             Timer timer = new Timer();
             timer.Interval = 33; //1秒間に30回ほど書き換え, 30FPS
@@ -52,6 +54,23 @@ namespace breakout
 
             return (a1 * a2 < 0 && dist < radius) ? true : false;
         }
+
+        int BlockVsCircle(Rectangle block, Vector ball)
+        {
+            if(LineVsCircle(new Vector(block.Left, block.Top), new Vector(block.Right, block.Top),
+                ball, ballRadius))
+                return 1;
+            if (LineVsCircle(new Vector(block.Left, block.Bottom), new Vector(block.Right, block.Bottom),
+               ball, ballRadius))
+                return 2;
+            if (LineVsCircle(new Vector(block.Right, block.Top), new Vector(block.Right, block.Bottom),
+               ball, ballRadius))
+                return 3;
+            if (LineVsCircle(new Vector(block.Left, block.Top), new Vector(block.Left, block.Bottom),
+               ball, ballRadius))
+                return 4;
+            return -1;
+        }
         private void Update(object sender, EventArgs e)
         {
             // move ball
@@ -62,17 +81,27 @@ namespace breakout
                 ballSpeed.X *= -1;
             }
 
-            //bound by over wall
+            //bound by sealing
             if(ballPos.Y - ballRadius < 0)
             {
                 ballSpeed.Y *= -1;
             }
-            //judge the crush
+            //judge the crush with paddle and ball
             if(LineVsCircle(new Vector(this.paddlePos.Left, this.paddlePos.Top),
                 new Vector(this.paddlePos.Right, this.paddlePos.Top),
                 ballPos, ballRadius))
             {
                 ballSpeed.Y *= -1;
+            }
+            //judge the crush with block and ball
+            int collision = BlockVsCircle(blockPos, ballPos);
+            if (collision == 1 || collision == 2)
+            {
+                ballSpeed.Y *= -1;
+            }
+            else if (collision == 3 || collision == 4) 
+            {
+                ballSpeed.X *= -1;
             }
             //redraw
             Invalidate();
@@ -80,14 +109,16 @@ namespace breakout
 
         private void Draw(object sender, PaintEventArgs e)
         {
-            SolidBrush pinkBrush = new SolidBrush(Color.HotPink);
-            SolidBrush grayBrush = new SolidBrush(Color.DimGray);
+            SolidBrush pinkBrush = new SolidBrush(Color.HotPink); //ball color
+            SolidBrush grayBrush = new SolidBrush(Color.DimGray); //paddle color
+            SolidBrush blueBrush = new SolidBrush(Color.LightBlue);
 
             float px = (float)this.ballPos.X - ballRadius;
             float py = (float)this.ballPos.Y - ballRadius;
 
             e.Graphics.FillEllipse(pinkBrush, px, py, this.ballRadius * 2, this.ballRadius * 2);
             e.Graphics.FillRectangle(grayBrush, paddlePos);
+            e.Graphics.FillRectangle(blueBrush, blockPos);
         }
 
         private void KeyPressed(object sender, KeyPressEventArgs e)
